@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { CaretLeft, CaretRight } from '@phosphor-icons/react'
 import { HistoryItem } from '@/lib/types'
 
-const API_BASE = 'http://localhost:8000'
+const API_BASE = import.meta.env.VITE_API_BASE || '/api'
 const ITEMS_PER_PAGE = 10
 
 export function History() {

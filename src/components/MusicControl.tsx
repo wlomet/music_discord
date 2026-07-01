@@ -11,7 +11,7 @@ import { toast } from 'sonner'
 import { mockApi, formatDuration, isValidYouTubeUrl } from '@/lib/api'
 import { CurrentTrack, QueueItem } from '@/lib/types'
 
-const API_BASE = 'http://localhost:8000'
+const API_BASE = import.meta.env.VITE_API_BASE || '/api'
 
 type Guild = { id: string; name: string; memberCount: number }
 

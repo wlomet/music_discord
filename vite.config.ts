@@ -22,4 +22,7 @@ export default defineConfig({
       '@': resolve(projectRoot, 'src')
     }
   },
+  server: {
+    allowedHosts: ['music.discord.wlomet.fr', 'localhost', '127.0.0.1']
+  }
 });

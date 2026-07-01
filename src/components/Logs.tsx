@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge'
 import { LogEntry } from '@/lib/types'
 import { Info, Warning, XCircle, CheckCircle } from '@phosphor-icons/react'
 
-const WS_URL = 'ws://localhost:8000/ws/logs'
+const WS_URL = `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.host}/ws/logs`
 const PING_INTERVAL_MS = 20_000
 const RECONNECT_DELAY_MS = 3_000
 const MAX_LOGS = 100
