@@ -1,0 +1,7 @@
+# Discord music bot — Python dependencies
+discord.py[voice]>=2.3.0
+yt-dlp>=2024.1.1
+fastapi>=0.111.0
+uvicorn[standard]>=0.29.0
+python-dotenv>=1.0.0
+pydantic>=2.0.0
