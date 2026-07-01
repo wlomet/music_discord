@@ -1,14 +1,7 @@
 name: Deploy
 
 on:
-  push:
-    branches:
-      - main
-      - master
-  pull_request:
-    branches:
-      - main
-      - master
+  workflow_dispatch:
 
 jobs:
   build-and-test:
@@ -43,3 +36,19 @@ jobs:
       # Build
       - name: Build Dashboard
         run: npm run build
+
+      # Deploy to VPS
+      - name: Deploy to VPS
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            cd ${{ secrets.VPS_DEPLOY_PATH }}
+            git pull origin main
+            npm install
+            npm run build
+            cd bot
+            pip install -r requirements.txt
+            sudo systemctl restart music-bot || echo "Bot service not yet configured"
