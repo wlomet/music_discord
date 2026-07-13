@@ -1,0 +1,101 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Install Python deps",
+      "type": "shell",
+      "command": "${workspaceFolder}\\venv\\Scripts\\pip.exe install -r requirements.txt",
+      "options": {
+        "cwd": "${workspaceFolder}/bot"
+      },
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "group": "setup"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Install Node deps",
+      "type": "shell",
+      "command": "npm install",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "group": "setup"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Start Bot + API",
+      "type": "shell",
+      "command": "${workspaceFolder}\\venv\\Scripts\\python.exe main.py",
+      "options": {
+        "cwd": "${workspaceFolder}/bot"
+      },
+      "group": "none",
+      "isBackground": true,
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "group": "run",
+        "label": "Bot + API (port 8000)"
+      },
+      "problemMatcher": {
+        "pattern": {
+          "regexp": "^$"
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "^.*Logged in as.*$",
+          "endsPattern": "^.*Slash commands synced.*$"
+        }
+      }
+    },
+    {
+      "label": "Start Dashboard",
+      "type": "shell",
+      "command": "npm install && npm run dev",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "group": "none",
+      "isBackground": true,
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "group": "run",
+        "label": "Dashboard (port 5173)"
+      },
+      "problemMatcher": {
+        "pattern": {
+          "regexp": "^$"
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": ".*",
+          "endsPattern": ".*Local:.*http://localhost.*"
+        }
+      }
+    },
+    {
+      "label": "🚀 Launch Everything",
+      "dependsOn": ["Start Bot + API", "Start Dashboard"],
+      "dependsOrder": "parallel",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    }
+  ]
+}

@@ -21,3 +21,10 @@ No problem! If you were just checking things out and don’t need to keep this c
 📄 License For Spark Template Resources 
 
 The Spark Template files and resources from GitHub are licensed under the terms of the MIT license, Copyright GitHub, Inc.
+
+
+sudo systemctl stop music-discord-bot.service
+sudo systemctl stop music-discord-dashboard.service
+
+sudo systemctl start music-discord-bot.service
+sudo systemctl start music-discord-dashboard.service
