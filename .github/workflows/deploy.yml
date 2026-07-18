@@ -83,7 +83,7 @@ jobs:
             echo "✅ Python dependencies updated"
             echo "📦 Updating Node dependencies..."
             cd /var/www/music_discord
-            npm ci --production 2>/dev/null || npm install --production
+            npm ci 2>/dev/null || npm install
             echo "✅ Node dependencies updated"
             echo "🎨 Building frontend..."
             npm run build || (echo "❌ Build failed" && exit 1)
