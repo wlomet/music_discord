@@ -9,19 +9,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Play, Pause, Stop, SkipForward, Plus, Trash, ArrowUp, ArrowDown } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 import { mockApi, formatDuration, isValidYouTubeUrl } from '@/lib/api'
-import { CurrentTrack, QueueItem } from '@/lib/types'
+import { CurrentTrack, QueueItem, BotInstance } from '@/lib/types'
+import { BotSelector } from './BotSelector'
 
 const API_BASE = import.meta.env.VITE_API_BASE || '/api'
-
-type Guild = { id: string; name: string; memberCount: number }
 
 export function MusicControl() {
   const [currentTrack, setCurrentTrack] = useState<CurrentTrack | null>(null)
   const [queue, setQueue] = useState<QueueItem[]>([])
   const [newTrackUrl, setNewTrackUrl] = useState('')
   const [isLoading, setIsLoading] = useState(false)
-  const [guilds, setGuilds] = useState<Guild[]>([])
   const [activeGuildId, setActiveGuildId] = useState<string | null>(null)
+  const [selectedBot, setSelectedBot] = useState<BotInstance | null>(null)
 
   const loadCurrentTrack = useCallback(async () => {
     const track = await mockApi.getCurrentTrack()
@@ -37,40 +36,7 @@ export function MusicControl() {
     }
   }, [])
 
-  const loadGuilds = useCallback(async () => {
-    try {
-      const res = await fetch(`${API_BASE}/bot/guilds`)
-      if (!res.ok) return
-      const data: Guild[] = await res.json()
-      setGuilds(data)
-      // Sync active guild from bot if we don't have one selected yet
-      if (activeGuildId === null && data.length > 0) {
-        setActiveGuildId(data[0].id)
-      }
-    } catch {
-      // bot offline
-    }
-  }, [activeGuildId])
-
-  async function handleGuildChange(guildId: string) {
-    try {
-      const res = await fetch(`${API_BASE}/bot/guilds/active`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ guild_id: guildId }),
-      })
-      if (res.ok) {
-        setActiveGuildId(guildId)
-        await loadQueue()
-        toast.success(`Switched to ${guilds.find(g => g.id === guildId)?.name ?? guildId}`)
-      }
-    } catch {
-      toast.error('Could not switch server')
-    }
-  }
-
   useEffect(() => {
-    loadGuilds()
     loadCurrentTrack()
     loadQueue()
     const interval = setInterval(() => {
@@ -78,7 +44,7 @@ export function MusicControl() {
       loadQueue()
     }, 3000)
     return () => clearInterval(interval)
-  }, [loadCurrentTrack, loadQueue, loadGuilds])
+  }, [loadCurrentTrack, loadQueue])
 
   async function handlePlay() {
     setIsLoading(true)
@@ -195,38 +161,14 @@ export function MusicControl() {
         <p className="text-muted-foreground mt-1">Manage playback and queue</p>
       </div>
 
-      {/* Server selector */}
-      <Card>
-        <CardContent className="pt-4">
-          <div className="flex items-center gap-4">
-            <Label className="shrink-0 text-sm font-medium">Discord Server</Label>
-            {guilds.length > 0 ? (
-              <Select
-                value={activeGuildId ?? ''}
-                onValueChange={handleGuildChange}
-              >
-                <SelectTrigger className="w-72">
-                  <SelectValue placeholder="Select a server…" />
-                </SelectTrigger>
-                <SelectContent>
-                  {guilds.map((g) => (
-                    <SelectItem key={g.id} value={g.id}>
-                      {g.name}
-                      <span className="ml-2 text-xs text-muted-foreground">
-                        ({g.memberCount} members)
-                      </span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            ) : (
-              <span className="text-sm text-muted-foreground">
-                Bot offline or not in any server
-              </span>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+      {/* Bot selector */}
+      <BotSelector 
+        onBotSelected={(bot) => {
+          setSelectedBot(bot)
+          setActiveGuildId(bot.guildId)
+        }}
+        selectedBotId={selectedBot ? `${selectedBot.botId}-${selectedBot.guildId}` : undefined}
+      />
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>

@@ -49,3 +49,19 @@ export interface Guild {
   name: string
   memberCount: number
 }
+
+export interface VoiceChannel {
+  id: string
+  name: string
+  memberCount: number
+}
+
+export interface BotInstance {
+  botId: string
+  botName: string
+  guildId: string
+  guildName: string
+  voiceChannel?: VoiceChannel | null
+  isPlaying: boolean
+  queueSize: number
+}

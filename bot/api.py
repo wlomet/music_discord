@@ -110,7 +110,7 @@ def _elapsed(track: dict) -> int:
 
 
 # ── REST endpoints ─────────────────────────────────────────────────────────────
-@app.get("/bot/status")
+@app.get("/api/bot/status")
 async def get_status():
     q = _active_queue()
     connected_guilds = sum(1 for q2 in state.music_queues.values() if q2)
@@ -124,7 +124,7 @@ async def get_status():
     }
 
 
-@app.get("/bot/current-track")
+@app.get("/api/bot/current-track")
 async def get_current_track():
     track = state.current_track
     if not track:
@@ -145,7 +145,7 @@ class PlayRequest(BaseModel):
     url: str
 
 
-@app.post("/bot/play")
+@app.post("/api/bot/play")
 async def post_play(body: PlayRequest):
     """Queue a URL from the dashboard and start playback if idle."""
     gid = state.active_guild_id
@@ -172,12 +172,14 @@ async def post_play(body: PlayRequest):
     # API endpoint returns immediately (yt-dlp extraction can take 30s+).
     if not vc.is_playing() and not vc.is_paused():
         import bot as _bot
-        asyncio.create_task(_bot._play_next(gid, None))
+        # Get the text channel where the bot was activated
+        text_channel = state.text_channels.get(gid)
+        asyncio.create_task(_bot._play_next(gid, text_channel))
 
     return {"queued": True}
 
 
-@app.post("/bot/pause")
+@app.post("/api/bot/pause")
 async def post_pause():
     vc = _vc()
     if vc and vc.is_playing():
@@ -187,7 +189,7 @@ async def post_pause():
     return {"ok": True}
 
 
-@app.post("/bot/resume")
+@app.post("/api/bot/resume")
 async def post_resume():
     vc = _vc()
     if vc and vc.is_paused():
@@ -197,7 +199,7 @@ async def post_resume():
     return {"ok": True}
 
 
-@app.post("/bot/skip")
+@app.post("/api/bot/skip")
 async def post_skip():
     vc = _vc()
     if vc and (vc.is_playing() or vc.is_paused()):
@@ -205,7 +207,7 @@ async def post_skip():
     return {"ok": True}
 
 
-@app.post("/bot/stop")
+@app.post("/api/bot/stop")
 async def post_stop():
     vc = _vc()
     if vc and (vc.is_playing() or vc.is_paused()):
@@ -217,13 +219,13 @@ async def post_stop():
     return {"ok": True}
 
 
-@app.get("/bot/queue")
+@app.get("/api/bot/queue")
 async def get_queue():
     q = _active_queue()
     return [{"position": i + 1, "track": item} for i, item in enumerate(q)]
 
 
-@app.delete("/bot/queue/{track_id}")
+@app.delete("/api/bot/queue/{track_id}")
 async def delete_queue_item(track_id: str):
     gid = state.active_guild_id
     if gid is None:
@@ -237,7 +239,7 @@ async def delete_queue_item(track_id: str):
     return {"ok": True}
 
 
-@app.get("/bot/history")
+@app.get("/api/bot/history")
 async def get_history(page: int = 1, per_page: int = 10):
     total = len(state.history)
     start = (page - 1) * per_page
@@ -250,16 +252,55 @@ async def get_history(page: int = 1, per_page: int = 10):
     }
 
 
-@app.get("/bot/guilds")
+@app.get("/api/bot/guilds")
 async def get_guilds():
     return state.guilds
+
+
+@app.get("/api/bot/connected-bots")
+async def get_connected_bots():
+    """Get all bots connected to voice channels across all guilds."""
+    import bot as _bot
+    
+    bots = []
+    for guild in _bot.client.guilds:
+        guild_data = {
+            "id": str(guild.id),
+            "name": guild.name,
+            "memberCount": guild.member_count
+        }
+        
+        # Check if bot is connected to a voice channel in this guild
+        if guild.voice_client and guild.voice_client.is_connected():
+            vc = guild.voice_client
+            channel_data = {
+                "id": str(vc.channel.id),
+                "name": vc.channel.name,
+                "memberCount": len(vc.channel.members)
+            }
+            
+            # Get queue and playing status
+            q = state.music_queues.get(guild.id, [])
+            
+            bot_instance = {
+                "botId": str(_bot.client.user.id),
+                "botName": str(_bot.client.user),
+                "guildId": guild_data["id"],
+                "guildName": guild_data["name"],
+                "voiceChannel": channel_data,
+                "isPlaying": state.current_track is not None and state.current_track.get("guild_id") == guild.id,
+                "queueSize": len(q)
+            }
+            bots.append(bot_instance)
+    
+    return bots
 
 
 class ActiveGuildRequest(BaseModel):
     guild_id: str
 
 
-@app.post("/bot/guilds/active")
+@app.post("/api/bot/guilds/active")
 async def set_active_guild(body: ActiveGuildRequest):
     gid = int(body.guild_id)
     if not any(int(g["id"]) == gid for g in state.guilds):
@@ -268,7 +309,7 @@ async def set_active_guild(body: ActiveGuildRequest):
     return {"ok": True}
 
 
-@app.get("/bot/stats")
+@app.get("/api/bot/stats")
 async def get_stats():
     top = sorted(
         state.stats["top_tracks"].items(), key=lambda x: x[1], reverse=True
@@ -300,7 +341,7 @@ async def get_stats():
 
 
 # ── WebSocket ──────────────────────────────────────────────────────────────────
-@app.websocket("/ws/logs")
+@app.websocket("/api/ws/logs")
 async def websocket_logs(ws: WebSocket):
     await _manager.connect(ws)
     try:

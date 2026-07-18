@@ -1,4 +1,4 @@
-import { BotStatus, CurrentTrack, QueueItem, Stats } from './types'
+import { BotStatus, CurrentTrack, QueueItem, Stats, BotInstance } from './types'
 
 const API_BASE = import.meta.env.VITE_API_BASE || '/api'
 
@@ -18,6 +18,14 @@ export const mockApi = {
     } catch {
       // Bot server unreachable — return offline status so the dashboard degrades gracefully
       return { online: false, guilds: 0, voiceChannels: 0, uptime: '—', queueSize: 0 }
+    }
+  },
+
+  async getConnectedBots(): Promise<BotInstance[]> {
+    try {
+      return await apiFetch<BotInstance[]>('/bot/connected-bots')
+    } catch {
+      return []
     }
   },
 

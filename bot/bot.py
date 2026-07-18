@@ -263,6 +263,8 @@ async def join(interaction: discord.Interaction):
     try:
         await channel.connect()
         state.active_guild_id = interaction.guild.id
+        # Store the text channel where the command was issued for notifications
+        state.text_channels[interaction.guild.id] = interaction.channel
         await interaction.followup.send(f"✅ Connected to **{channel.name}**")
     except Exception as exc:
         await interaction.followup.send(f"❌ Connection error: {exc}")
@@ -306,12 +308,7 @@ async def play(interaction: discord.Interaction, url: str):
         first = entries[0]
         state.music_queues[guild_id] = list(entries)
         await _play_next(guild_id, interaction.channel)
-        if len(entries) == 1:
-            await interaction.followup.send(f"▶️ Playing: **{first['title']}**")
-        else:
-            await interaction.followup.send(
-                f"▶️ Playing: **{first['title']}** (+{len(entries) - 1} more queued)"
-            )
+        # Message is already sent by _play_next to the channel
 
 
 @client.tree.command(name="pause", description="Pause playback.")

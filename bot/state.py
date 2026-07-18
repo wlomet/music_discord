@@ -16,6 +16,9 @@ active_guild_id: Optional[int] = None  # guild whose queue the dashboard shows
 # List of guilds the bot is in: [{id, name, memberCount}]
 guilds: list = []
 
+# Per-guild text channels for notifications — guild_id -> text_channel
+text_channels: dict = {}
+
 
 # ── Playback ───────────────────────────────────────────────────────────────────
 # Keys: id, title, url, duration (int seconds), elapsed (int seconds),
