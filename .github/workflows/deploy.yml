@@ -114,7 +114,7 @@ jobs:
             sleep 2
             RETRIES=5
             while [ $RETRIES -gt 0 ]; do
-              if curl -sf http://127.0.0.1:8000/bot/status > /dev/null; then
+              if curl -sf http://127.0.0.1:8000/api/bot/status > /dev/null; then
                 echo "✅ API is responding"
                 break
               fi
