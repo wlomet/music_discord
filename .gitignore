@@ -35,3 +35,4 @@ pids
 
 .spark-workbench-id
 /venv
+/deploy

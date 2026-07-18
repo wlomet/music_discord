@@ -1,54 +1,166 @@
-name: Deploy
+name: 🚀 Deploy Music Discord Bot
 
 on:
+  push:
+    branches:
+      - main
   workflow_dispatch:
 
+env:
+  PROJECT_DIR: /var/www/music_discord
+
 jobs:
-  build-and-test:
+  build:
+    name: 🏗️ Build & Validate
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
 
-      # Setup Python
-      - name: Set up Python 3.11
+      - name: 🐍 Setup Python 3.11
         uses: actions/setup-python@v4
         with:
           python-version: '3.11'
 
-      # Setup Node
-      - name: Set up Node.js 18
+      - name: 📦 Setup Node.js 18
         uses: actions/setup-node@v4
         with:
           node-version: '18'
           cache: 'npm'
 
-      # Install dependencies
-      - name: Install Python dependencies
+      - name: ✅ Validate Python dependencies
         run: |
           python -m venv venv
           source venv/bin/activate
           pip install -r bot/requirements.txt
+          echo "✅ Python dependencies validated"
 
-      - name: Install Node dependencies
-        run: npm install
+      - name: ✅ Validate Node dependencies
+        run: |
+          npm ci
+          echo "✅ Node dependencies validated"
 
-      # Build
-      - name: Build Dashboard
-        run: npm run build
+      - name: 🎨 Build frontend
+        run: |
+          npm run build
+          if [ ! -d "dist" ]; then
+            echo "❌ Build failed: dist directory not found"
+            exit 1
+          fi
+          echo "✅ Frontend build successful"
 
-      # Deploy to VPS
-      - name: Deploy to VPS
+  deploy:
+    name: 🚀 Deploy to Production
+    runs-on: ubuntu-latest
+    needs: build
+    environment: production
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📤 Pull & Deploy on Server
         uses: appleboy/ssh-action@master
         with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          port: ${{ secrets.SERVER_PORT }}
           script: |
-            cd ${{ secrets.VPS_DEPLOY_PATH }}
-            git pull origin main
-            npm install
-            npm run build
+            set -e
+            echo "🚀 Starting deployment..."
+            cd ${{ env.PROJECT_DIR }}
+            echo "📥 Pulling latest code from GitHub..."
+            git fetch origin
+            git reset --hard origin/main
+            echo "🐍 Updating Python dependencies..."
             cd bot
-            pip install -r requirements.txt
-            sudo systemctl restart music-bot || echo "Bot service not yet configured"
+            source venv/bin/activate
+            pip install --upgrade pip setuptools wheel -q
+            pip install -r requirements.txt -q
+            echo "✅ Python dependencies updated"
+            echo "📦 Updating Node dependencies..."
+            cd /var/www/music_discord
+            npm ci --production 2>/dev/null || npm install --production
+            echo "✅ Node dependencies updated"
+            echo "🎨 Building frontend..."
+            npm run build || (echo "❌ Build failed" && exit 1)
+            if [ ! -d "dist" ]; then
+              echo "❌ Build failed: dist directory not found"
+              exit 1
+            fi
+            echo "✅ Frontend built successfully"
+            echo "🔐 Setting file permissions..."
+            sudo chown -R discord:discord bot
+            sudo chown -R www-data:www-data dist
+            sudo chmod -R 755 dist
+            echo "✅ Permissions set"
+            echo "🔍 Validating Nginx configuration..."
+            sudo cp deploy/nginx/music_discord /etc/nginx/sites-available/
+            sudo nginx -t || (echo "❌ Nginx configuration error" && exit 1)
+            echo "✅ Nginx configuration valid"
+            echo "🔄 Updating systemd service..."
+            sudo cp deploy/systemd/music-discord-bot.service /etc/systemd/system/
+            sudo systemctl daemon-reload
+            echo "✅ Systemd updated"
+            echo "🔄 Reloading Nginx..."
+            sudo systemctl reload nginx
+            echo "✅ Nginx reloaded"
+            echo "🔄 Restarting bot service..."
+            sudo systemctl restart music-discord-bot.service
+            sleep 3
+            if sudo systemctl is-active --quiet music-discord-bot.service; then
+              echo "✅ Bot service is running"
+            else
+              echo "❌ Bot service failed to start"
+              sudo journalctl -u music-discord-bot.service -n 20 --no-pager
+              exit 1
+            fi
+            echo "🔍 Checking API health..."
+            sleep 2
+            RETRIES=5
+            while [ $RETRIES -gt 0 ]; do
+              if curl -sf http://127.0.0.1:8000/bot/status > /dev/null; then
+                echo "✅ API is responding"
+                break
+              fi
+              RETRIES=$((RETRIES - 1))
+              if [ $RETRIES -gt 0 ]; then
+                echo "⏳ Waiting for API... ($RETRIES retries left)"
+                sleep 2
+              fi
+            done
+            if [ $RETRIES -eq 0 ]; then
+              echo "❌ API health check failed"
+              sudo journalctl -u music-discord-bot.service -n 30 --no-pager
+              exit 1
+            fi
+            echo "🔍 Checking frontend..."
+            if [ -f "dist/index.html" ]; then
+              echo "✅ Frontend files present"
+            else
+              echo "❌ Frontend files missing"
+              exit 1
+            fi
+            echo ""
+            echo "🎉 Deployment completed successfully!"
+            echo "📊 Service status:"
+            sudo systemctl status music-discord-bot.service --no-pager | head -10
+            echo ""
+            echo "📋 Recent logs:"
+            sudo journalctl -u music-discord-bot.service -n 5 --no-pager
+
+      - name: ✅ Deployment Success
+        if: success()
+        run: |
+          echo "✅ Deployment successful!"
+          echo "🌐 Your app is live at: https://music.discord.wlomet.fr"
+          echo "📊 View logs: ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} 'sudo journalctl -u music-discord-bot.service -f'"
+
+      - name: ❌ Deployment Failed
+        if: failure()
+        run: |
+          echo "❌ Deployment failed!"
+          echo "Check the logs above for details"
+          exit 1
