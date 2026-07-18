@@ -97,15 +97,7 @@ jobs:
             sudo chown -R www-data:www-data dist
             sudo chmod -R 755 dist
             echo "✅ Permissions set"
-            echo "🔍 Validating Nginx configuration..."
-            sudo cp deploy/nginx/music_discord /etc/nginx/sites-available/
-            sudo nginx -t || (echo "❌ Nginx configuration error" && exit 1)
-            echo "✅ Nginx configuration valid"
-            echo "🔄 Updating systemd service..."
-            sudo cp deploy/systemd/music-discord-bot.service /etc/systemd/system/
-            sudo systemctl daemon-reload
-            echo "✅ Systemd updated"
-            echo "🔄 Reloading Nginx..."
+            echo " Reloading Nginx..."
             sudo systemctl reload nginx
             echo "✅ Nginx reloaded"
             echo "🔄 Restarting bot service..."
