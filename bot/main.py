@@ -14,8 +14,24 @@ import uuid
 import uvicorn
 from dotenv import load_dotenv
 
-# Load .env before anything imports state / bot
-load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
+# Load .env based on environment (DEVELOPMENT or PRODUCTION)
+# Defaults to .env.development if ENVIRONMENT is not set
+env = os.getenv("ENVIRONMENT", "development").lower()
+env_file = os.path.join(os.path.dirname(__file__), f".env.{env}")
+
+# Try the environment-specific file first, then fall back to .env
+if os.path.isfile(env_file):
+    load_dotenv(env_file)
+else:
+    # Fall back to .env for backward compatibility
+    fallback = os.path.join(os.path.dirname(__file__), ".env")
+    if os.path.isfile(fallback):
+        load_dotenv(fallback)
+    else:
+        print(f"⚠️  Warning: Neither {env_file} nor .env found!")
+
+logger_name = logging.getLogger(__name__)
+logger_name.debug(f"Loaded configuration from {env_file if os.path.isfile(env_file) else 'fallback .env'}")
 
 # Custom logging handler that pushes records into state.log_queue
 import state  # noqa: E402

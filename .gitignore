@@ -24,6 +24,8 @@ dist-ssr
 
 .env
 bot/.env
+bot/.env.*
+!bot/.env.example
 bot/cookies.txt
 **/__pycache__/
 **/*.pyc
@@ -36,3 +38,4 @@ pids
 .spark-workbench-id
 /venv
 /deploy
+/bot/Instruction

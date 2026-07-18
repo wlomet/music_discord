@@ -32,11 +32,72 @@
       "problemMatcher": []
     },
     {
+      "label": "🤖 Start Bot (DEVELOPMENT)",
+      "type": "shell",
+      "command": "${workspaceFolder}\\venv\\Scripts\\python.exe main.py",
+      "options": {
+        "cwd": "${workspaceFolder}/bot",
+        "env": {
+          "ENVIRONMENT": "development"
+        }
+      },
+      "group": "none",
+      "isBackground": true,
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "group": "run",
+        "label": "Bot DEV (port 8000)"
+      },
+      "problemMatcher": {
+        "pattern": {
+          "regexp": "^$"
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "^.*Logged in as.*$",
+          "endsPattern": "^.*Slash commands synced.*$"
+        }
+      }
+    },
+    {
+      "label": "🚀 Start Bot (PRODUCTION)",
+      "type": "shell",
+      "command": "${workspaceFolder}\\venv\\Scripts\\python.exe main.py",
+      "options": {
+        "cwd": "${workspaceFolder}/bot",
+        "env": {
+          "ENVIRONMENT": "production"
+        }
+      },
+      "group": "none",
+      "isBackground": true,
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "group": "run",
+        "label": "Bot PROD (port 8000)"
+      },
+      "problemMatcher": {
+        "pattern": {
+          "regexp": "^$"
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "^.*Logged in as.*$",
+          "endsPattern": "^.*Slash commands synced.*$"
+        }
+      }
+    },
+    {
       "label": "Start Bot + API",
       "type": "shell",
       "command": "${workspaceFolder}\\venv\\Scripts\\python.exe main.py",
       "options": {
-        "cwd": "${workspaceFolder}/bot"
+        "cwd": "${workspaceFolder}/bot",
+        "env": {
+          "ENVIRONMENT": "development"
+        }
       },
       "group": "none",
       "isBackground": true,
