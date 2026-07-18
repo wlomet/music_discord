@@ -28,6 +28,12 @@ current_track: Optional[dict] = None
 # Per-guild queues — list of {id, title, url, duration}
 music_queues: defaultdict = defaultdict(list)
 
+# Per-guild last activity timestamp — guild_id -> datetime (updated when music plays)
+last_activity: dict = {}  # used for auto-disconnect when idle for 2+ minutes
+
+# Background tasks tracking
+inactivity_task_started: bool = False  # flag to ensure we only start the task once
+
 
 # ── History (most recent first, capped at 500) ─────────────────────────────────
 # Each entry: {track: {id, title, url, duration}, playedAt: ISO str, guildId: str}

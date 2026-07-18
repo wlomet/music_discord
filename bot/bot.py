@@ -114,6 +114,9 @@ class YTDLSource(discord.PCMVolumeTransformer):
 # ── Internal helpers ───────────────────────────────────────────────────────────
 def _record_play(entry: dict, guild_id: int) -> None:
     """Update shared history and stats when a track starts."""
+    # Update last activity when a track starts
+    state.last_activity[guild_id] = datetime.utcnow()
+    
     state.history.insert(
         0,
         {
@@ -200,6 +203,57 @@ async def _play_next(guild_id: int, text_channel) -> None:
         await _play_next(guild_id, text_channel)
 
 
+# ── Auto-disconnect on inactivity ─────────────────────────────────────────────
+async def _check_inactivity() -> None:
+    """Background task: disconnect bots idle for 2+ minutes without music/queue."""
+    INACTIVITY_TIMEOUT = 120  # 2 minutes in seconds
+    CHECK_INTERVAL = 30  # Check every 30 seconds
+    
+    while True:
+        try:
+            await asyncio.sleep(CHECK_INTERVAL)
+            now = datetime.utcnow()
+            
+            for guild in client.guilds:
+                gid = guild.id
+                vc = guild.voice_client
+                
+                # Only check if bot is connected to voice
+                if not vc or not vc.is_connected():
+                    continue
+                
+                # Check if there's no music playing and no queue
+                has_music = state.current_track is not None
+                has_queue = len(state.music_queues.get(gid, [])) > 0
+                
+                if not has_music and not has_queue:
+                    # Check last activity
+                    last_act = state.last_activity.get(gid)
+                    if last_act is None:
+                        # First time checking, mark it now
+                        state.last_activity[gid] = now
+                        continue
+                    
+                    elapsed = (now - last_act).total_seconds()
+                    if elapsed >= INACTIVITY_TIMEOUT:
+                        # Disconnect and send goodbye message
+                        logger.info(f"Disconnecting from {guild.name} (idle for {elapsed:.0f}s)")
+                        
+                        # Send goodbye message if text channel is available
+                        text_channel = state.text_channels.get(gid)
+                        if text_channel:
+                            try:
+                                await text_channel.send("👋 Bot disconnected (idle for 2 minutes)")
+                            except Exception as e:
+                                logger.error(f"Failed to send goodbye message: {e}")
+                        
+                        # Disconnect
+                        await vc.disconnect()
+                        state.last_activity.pop(gid, None)
+        except Exception as e:
+            logger.error(f"Inactivity check error: {e}")
+
+
 # ── Discord client ─────────────────────────────────────────────────────────────
 _intents = discord.Intents.default()
 _intents.message_content = True
@@ -223,6 +277,12 @@ class BotClient(discord.Client):
         # the user to pick a server manually first.
         if state.active_guild_id is None and self.guilds:
             state.active_guild_id = self.guilds[0].id
+        
+        # Start inactivity check task (only once)
+        if not state.inactivity_task_started:
+            state.inactivity_task_started = True
+            asyncio.create_task(_check_inactivity())
+        
         logger.info("Logged in as %s (ID: %s)", self.user, self.user.id)
         await self.tree.sync()
         logger.info("Slash commands synced.")
