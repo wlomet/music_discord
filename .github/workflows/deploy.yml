@@ -71,6 +71,7 @@ jobs:
             set -e
             echo "🚀 Starting deployment..."
             cd ${{ env.PROJECT_DIR }}
+            git config --global --add safe.directory ${{ env.PROJECT_DIR }}
             echo "📥 Pulling latest code from GitHub..."
             git fetch origin
             git reset --hard origin/main
