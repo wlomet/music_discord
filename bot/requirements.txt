@@ -1,4 +1,8 @@
 # Discord music bot — Python dependencies
+# NOTE: FFmpeg is required as a system dependency (not pip)
+# Install on Ubuntu/Debian: sudo apt install ffmpeg
+# Install on macOS: brew install ffmpeg
+# Install on Windows: https://ffmpeg.org/download.html
 discord.py[voice]>=2.3.0
 yt-dlp>=2024.1.1
 fastapi>=0.111.0
